@@ -1,566 +1,1450 @@
 import streamlit as st
 import pandas as pd
-import requests
-from datetime import datetime
 import plotly.express as px
+import plotly.graph_objects as go
 
 
-# ==================================================
-# PAGE CONFIGURATION
-# ==================================================
+# ============================================================
+# PAGE CONFIG
+# ============================================================
 
 st.set_page_config(
-    page_title="Live Climate Impact Dashboard",
+    page_title="Climate Intelligence Dashboard",
     page_icon="🌍",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 
-# ==================================================
-# LOCATION
-# ==================================================
+# ============================================================
+# HTML HELPER
+# ============================================================
 
-latitude = 27.7172
-longitude = 85.3240
-location_name = "Kathmandu"
+def html(content):
+    """
+    Render HTML directly instead of passing it through
+    Streamlit Markdown.
+    """
+    st.html(content)
 
 
-# ==================================================
-# LIVE DATA COLLECTION FUNCTION
-# ==================================================
+# ============================================================
+# CUSTOM CSS
+# ============================================================
 
-def collect_climate_data(latitude, longitude):
+html("""
+<style>
 
-    # ----------------------------------------------
-    # WEATHER API
-    # ----------------------------------------------
+.stApp {
+    background:
+        radial-gradient(
+            circle at 0% 0%,
+            rgba(0, 190, 220, 0.16),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 100% 0%,
+            rgba(100, 70, 200, 0.16),
+            transparent 30%
+        ),
+        linear-gradient(
+            135deg,
+            #06111f,
+            #0a1627 50%,
+            #0d1423
+        );
 
-    weather_url = "https://api.open-meteo.com/v1/forecast"
+    color: #eef6ff;
+}
 
-    weather_params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "current": [
-            "temperature_2m",
-            "relative_humidity_2m",
-            "apparent_temperature",
-            "precipitation",
-            "wind_speed_10m",
-            "wind_direction_10m"
-        ],
-        "timezone": "Asia/Kathmandu"
-    }
 
-    weather_response = requests.get(
-        weather_url,
-        params=weather_params,
-        timeout=30
+/* Hide default Streamlit elements */
+
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+header {
+    background: transparent !important;
+}
+
+
+/* Main page */
+
+.block-container {
+    max-width: 1500px;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+}
+
+
+/* Sidebar */
+
+section[data-testid="stSidebar"] {
+    background:
+        linear-gradient(
+            180deg,
+            #06111f,
+            #07101c
+        );
+
+    border-right:
+        1px solid rgba(255,255,255,0.08);
+}
+
+section[data-testid="stSidebar"] * {
+    color: #dce8f5;
+}
+
+
+/* Hero */
+
+.hero {
+    position: relative;
+
+    padding: 42px;
+
+    border-radius: 26px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(20,105,130,0.45),
+            rgba(55,48,120,0.40)
+        );
+
+    border:
+        1px solid rgba(255,255,255,0.12);
+
+    box-shadow:
+        0 25px 70px rgba(0,0,0,0.35);
+
+    overflow: hidden;
+
+    margin-bottom: 30px;
+}
+
+
+.hero-glow {
+    position: absolute;
+
+    width: 280px;
+    height: 280px;
+
+    right: -100px;
+    top: -140px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(50,200,220,0.16);
+
+    filter: blur(10px);
+}
+
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+
+.live-badge {
+    display: inline-block;
+
+    padding: 7px 15px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(50,220,170,0.10);
+
+    border:
+        1px solid rgba(50,220,170,0.30);
+
+    color: #63e6b8;
+
+    font-size: 12px;
+
+    font-weight: 750;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 16px;
+}
+
+
+.hero-title {
+    font-size: 46px;
+
+    font-weight: 800;
+
+    letter-spacing: -2px;
+
+    line-height: 1.1;
+
+    color: #f6faff;
+
+    margin-bottom: 14px;
+}
+
+
+.hero-subtitle {
+    max-width: 850px;
+
+    color: #a9bbce;
+
+    font-size: 16px;
+
+    line-height: 1.7;
+}
+
+
+/* Section title */
+
+.section-title {
+    font-size: 23px;
+
+    font-weight: 750;
+
+    color: #f2f7fd;
+
+    margin-top: 30px;
+
+    margin-bottom: 16px;
+}
+
+
+.section-description {
+    color: #8196ab;
+
+    font-size: 14px;
+
+    margin-top: -8px;
+
+    margin-bottom: 18px;
+}
+
+
+/* KPI */
+
+.kpi-card {
+    min-height: 140px;
+
+    padding: 22px;
+
+    border-radius: 19px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,0.075),
+            rgba(255,255,255,0.025)
+        );
+
+    border:
+        1px solid rgba(255,255,255,0.09);
+
+    box-shadow:
+        0 15px 35px rgba(0,0,0,0.20);
+
+    backdrop-filter: blur(15px);
+}
+
+
+.kpi-icon {
+    font-size: 23px;
+
+    margin-bottom: 9px;
+}
+
+
+.kpi-label {
+    color: #8195aa;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    margin-bottom: 8px;
+}
+
+
+.kpi-value {
+    color: #f5f9ff;
+
+    font-size: 27px;
+
+    font-weight: 780;
+}
+
+
+/* Status cards */
+
+.status-card {
+    min-height: 125px;
+
+    padding: 22px;
+
+    border-radius: 18px;
+
+    background:
+        rgba(255,255,255,0.045);
+
+    border:
+        1px solid rgba(255,255,255,0.08);
+
+    box-shadow:
+        0 12px 30px rgba(0,0,0,0.16);
+}
+
+
+.status-label {
+    color: #7890a5;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 10px;
+}
+
+
+.status-value {
+    color: #f3f8fd;
+
+    font-size: 25px;
+
+    font-weight: 760;
+
+    margin-bottom: 7px;
+}
+
+
+.status-detail {
+    color: #8297aa;
+
+    font-size: 13px;
+}
+
+
+/* Sidebar branding */
+
+.sidebar-title {
+    color: #f4f8ff;
+
+    font-size: 24px;
+
+    font-weight: 800;
+}
+
+
+.sidebar-subtitle {
+    color: #738aa0;
+
+    font-size: 12px;
+
+    margin-top: 5px;
+
+    margin-bottom: 25px;
+}
+
+
+.sidebar-status {
+    padding: 15px;
+
+    border-radius: 14px;
+
+    background:
+        rgba(255,255,255,0.04);
+
+    border:
+        1px solid rgba(255,255,255,0.07);
+
+    color: #8196aa;
+
+    font-size: 12px;
+
+    line-height: 1.9;
+}
+
+
+/* Buttons */
+
+.stButton > button {
+    border-radius: 12px;
+
+    border:
+        1px solid rgba(255,255,255,0.12);
+
+    background:
+        linear-gradient(
+            135deg,
+            #11677c,
+            #315d98
+        );
+
+    color: white;
+
+    font-weight: 700;
+}
+
+
+.stDownloadButton button {
+    border-radius: 12px;
+
+    border:
+        1px solid rgba(255,255,255,0.12);
+
+    background:
+        linear-gradient(
+            135deg,
+            #11677c,
+            #315d98
+        );
+
+    color: white;
+
+    font-weight: 700;
+}
+
+
+/* Selectbox */
+
+div[data-baseweb="select"] > div {
+    background:
+        rgba(255,255,255,0.055);
+
+    border:
+        1px solid rgba(255,255,255,0.10);
+
+    border-radius: 11px;
+}
+
+
+/* Date input */
+
+div[data-testid="stDateInput"] input {
+    background:
+        rgba(255,255,255,0.055);
+
+    color: white;
+
+    border:
+        1px solid rgba(255,255,255,0.10);
+
+    border-radius: 10px;
+}
+
+
+/* Expander */
+
+div[data-testid="stExpander"] {
+    border:
+        1px solid rgba(255,255,255,0.08);
+
+    border-radius: 14px;
+
+    background:
+        rgba(255,255,255,0.025);
+}
+
+
+/* Footer */
+
+.footer {
+    margin-top: 50px;
+
+    padding-top: 25px;
+
+    border-top:
+        1px solid rgba(255,255,255,0.07);
+
+    text-align: center;
+
+    color: #657b90;
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+</style>
+""")
+
+
+# ============================================================
+# LOAD DATA
+# ============================================================
+
+@st.cache_data
+def load_data():
+
+    df = pd.read_csv(
+        "data/climate_history_cleaned.csv"
     )
 
-    weather_response.raise_for_status()
-
-    weather_data = weather_response.json()
-
-
-    # ----------------------------------------------
-    # AIR QUALITY API
-    # ----------------------------------------------
-
-    air_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
-
-    air_params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "current": [
-            "pm10",
-            "pm2_5",
-            "carbon_monoxide",
-            "carbon_dioxide",
-            "nitrogen_dioxide",
-            "sulphur_dioxide",
-            "ozone",
-            "european_aqi"
-        ],
-        "timezone": "Asia/Kathmandu"
-    }
-
-    air_response = requests.get(
-        air_url,
-        params=air_params,
-        timeout=30
+    df["time"] = pd.to_datetime(
+        df["time"],
+        errors="coerce"
     )
 
-    air_response.raise_for_status()
+    df = df.dropna(
+        subset=["time"]
+    )
 
-    air_data = air_response.json()
+    df = df.sort_values(
+        "time"
+    ).reset_index(drop=True)
 
+    return df
 
-    # ----------------------------------------------
-    # COMBINE WEATHER + AIR QUALITY
-    # ----------------------------------------------
 
-    climate_data = {
+try:
 
-        "timestamp": weather_data["current"]["time"],
+    climate_df = load_data()
 
-        "temperature_2m":
-            weather_data["current"]["temperature_2m"],
+except FileNotFoundError:
 
-        "relative_humidity_2m":
-            weather_data["current"]["relative_humidity_2m"],
+    st.error(
+        "❌ climate_history_cleaned.csv was not found."
+    )
 
-        "apparent_temperature":
-            weather_data["current"]["apparent_temperature"],
+    st.info(
+        "Make sure the file is inside: "
+        "data/climate_history_cleaned.csv"
+    )
 
-        "precipitation":
-            weather_data["current"]["precipitation"],
+    st.stop()
 
-        "wind_speed_10m":
-            weather_data["current"]["wind_speed_10m"],
 
-        "wind_direction_10m":
-            weather_data["current"]["wind_direction_10m"],
+if climate_df.empty:
 
-        "pm10":
-            air_data["current"]["pm10"],
+    st.error(
+        "The climate dataset is empty."
+    )
 
-        "pm2_5":
-            air_data["current"]["pm2_5"],
+    st.stop()
 
-        "carbon_monoxide":
-            air_data["current"]["carbon_monoxide"],
 
-        "carbon_dioxide":
-            air_data["current"]["carbon_dioxide"],
-
-        "nitrogen_dioxide":
-            air_data["current"]["nitrogen_dioxide"],
-
-        "sulphur_dioxide":
-            air_data["current"]["sulphur_dioxide"],
-
-        "ozone":
-            air_data["current"]["ozone"],
-
-        "european_aqi":
-            air_data["current"]["european_aqi"],
-
-        "collected_at":
-            datetime.now()
-    }
-
-
-    return pd.DataFrame([climate_data])
-
-
-# ==================================================
-# CLIMATE INDICATORS
-# ==================================================
-
-def heat_indicator(temp):
-
-    if temp < 25:
-        return "Low"
-
-    elif temp < 30:
-        return "Moderate"
-
-    elif temp < 35:
-        return "High"
-
-    else:
-        return "Very High"
-
-
-def rainfall_indicator(rain):
-
-    if rain == 0:
-        return "No Rain"
-
-    elif rain < 2.5:
-        return "Light"
-
-    elif rain < 7.6:
-        return "Moderate"
-
-    elif rain < 15:
-        return "Heavy"
-
-    else:
-        return "Very Heavy"
-
-
-def air_pollution_indicator(aqi):
-
-    if pd.isna(aqi):
-        return "Unknown"
-
-    elif aqi <= 20:
-        return "Good"
-
-    elif aqi <= 40:
-        return "Fair"
-
-    elif aqi <= 60:
-        return "Moderate"
-
-    elif aqi <= 80:
-        return "Poor"
-
-    elif aqi <= 100:
-        return "Very Poor"
-
-    else:
-        return "Extremely Poor"
-
-
-def environmental_status(row):
-
-    if row["air_pollution_indicator"] in [
-        "Very Poor",
-        "Extremely Poor"
-    ]:
-        return "High Environmental Impact"
-
-    elif row["heat_indicator"] in [
-        "High",
-        "Very High"
-    ]:
-        return "High Environmental Impact"
-
-    elif row["rainfall_indicator"] in [
-        "Heavy",
-        "Very Heavy"
-    ]:
-        return "High Environmental Impact"
-
-    elif (
-        row["air_pollution_indicator"] == "Moderate"
-        or row["heat_indicator"] == "Moderate"
-        or row["rainfall_indicator"] == "Moderate"
-    ):
-        return "Moderate Environmental Impact"
-
-    else:
-        return "Low Environmental Impact"
-
-
-# ==================================================
-# GET LIVE DATA
-# ==================================================
-
-if "live_data" not in st.session_state:
-
-    try:
-
-        st.session_state.live_data = collect_climate_data(
-            latitude,
-            longitude
-        )
-
-    except Exception as e:
-
-        st.error(
-            f"Unable to collect live climate data: {e}"
-        )
-
-        st.stop()
-
-
-climate_df = st.session_state.live_data.copy()
-
-
-# ==================================================
-# APPLY CLIMATE INDICATORS
-# ==================================================
-
-climate_df["heat_indicator"] = climate_df[
-    "temperature_2m"
-].apply(heat_indicator)
-
-
-climate_df["rainfall_indicator"] = climate_df[
-    "precipitation"
-].apply(rainfall_indicator)
-
-
-climate_df["air_pollution_indicator"] = climate_df[
-    "european_aqi"
-].apply(air_pollution_indicator)
-
-
-climate_df["environmental_status"] = climate_df.apply(
-    environmental_status,
-    axis=1
-)
-
-
-# ==================================================
-# TITLE
-# ==================================================
-
-st.title("🌍 Live Climate Impact Dashboard")
-
-st.write(
-    "Monitor current weather, air quality, and "
-    "environmental conditions in Kathmandu."
-)
-
-
-st.divider()
-
-
-# ==================================================
+# ============================================================
 # SIDEBAR
-# ==================================================
+# ============================================================
 
-st.sidebar.header("⚙️ Dashboard Controls")
+with st.sidebar:
 
-st.sidebar.subheader("📍 Location")
+    html("""
+    <div class="sidebar-title">
+        🌍 Climate Intelligence
+    </div>
 
-st.sidebar.selectbox(
-    "Select Location",
-    ["Kathmandu"]
+    <div class="sidebar-subtitle">
+        Environmental Monitoring Platform
+    </div>
+    """)
+
+
+    st.markdown("### 📅 Analysis Period")
+
+
+    min_date = climate_df["time"].min().date()
+
+    max_date = climate_df["time"].max().date()
+
+
+    date_range = st.date_input(
+        "Date range",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date,
+        label_visibility="collapsed"
+    )
+
+
+    st.markdown("### 📊 Primary Metric")
+
+
+    metric = st.selectbox(
+        "Metric",
+        [
+            "Temperature",
+            "PM2.5",
+            "PM10",
+            "European AQI",
+            "Rainfall"
+        ],
+        label_visibility="collapsed"
+    )
+
+
+    st.markdown("### ⚡ Quick Period")
+
+
+    quick_period = st.radio(
+        "Period",
+        [
+            "Custom",
+            "Last 7 Days",
+            "Last 14 Days",
+            "Last 30 Days"
+        ],
+        label_visibility="collapsed"
+    )
+
+
+    st.markdown("---")
+
+
+    html("""
+    <div class="sidebar-status">
+
+        <b>DATA SOURCES</b>
+
+        <br>
+
+        🛰️ Open-Meteo Weather API
+
+        <br>
+
+        🌫️ Open-Meteo Air Quality API
+
+        <br><br>
+
+        <b>PIPELINE STATUS</b>
+
+        <br>
+
+        🟢 Data available
+
+        <br>
+
+        🟢 Visualization active
+
+    </div>
+    """)
+
+
+# ============================================================
+# FILTER DATA
+# ============================================================
+
+if quick_period != "Custom":
+
+    days_map = {
+        "Last 7 Days": 7,
+        "Last 14 Days": 14,
+        "Last 30 Days": 30
+    }
+
+    days = days_map[quick_period]
+
+    end_time = climate_df["time"].max()
+
+    start_time = (
+        end_time
+        - pd.Timedelta(days=days)
+    )
+
+    filtered_df = climate_df[
+        (climate_df["time"] >= start_time)
+        &
+        (climate_df["time"] <= end_time)
+    ].copy()
+
+else:
+
+    if (
+        isinstance(date_range, tuple)
+        and len(date_range) == 2
+    ):
+
+        start_date = pd.Timestamp(
+            date_range[0]
+        )
+
+        end_date = (
+            pd.Timestamp(date_range[1])
+            + pd.Timedelta(days=1)
+        )
+
+        filtered_df = climate_df[
+            (climate_df["time"] >= start_date)
+            &
+            (climate_df["time"] < end_date)
+        ].copy()
+
+    else:
+
+        filtered_df = climate_df.copy()
+
+
+if filtered_df.empty:
+
+    st.warning(
+        "No data is available for this period."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# LATEST DATA
+# ============================================================
+
+latest = filtered_df.iloc[-1]
+
+
+# ============================================================
+# HERO
+# ============================================================
+
+html("""
+<div class="hero">
+
+    <div class="hero-glow"></div>
+
+    <div class="hero-content">
+
+        <div class="live-badge">
+            ● LIVE CLIMATE MONITORING
+        </div>
+
+        <div class="hero-title">
+            Climate Intelligence Dashboard
+        </div>
+
+        <div class="hero-subtitle">
+            Explore atmospheric conditions, air quality,
+            rainfall patterns, and environmental indicators
+            through interactive climate analytics.
+        </div>
+
+    </div>
+
+</div>
+""")
+
+
+# ============================================================
+# KPI CALCULATIONS
+# ============================================================
+
+avg_temp = filtered_df[
+    "temperature_2m"
+].mean()
+
+max_temp = filtered_df[
+    "temperature_2m"
+].max()
+
+avg_pm25 = filtered_df[
+    "pm2_5"
+].mean()
+
+avg_pm10 = filtered_df[
+    "pm10"
+].mean()
+
+avg_aqi = filtered_df[
+    "european_aqi"
+].mean()
+
+total_rain = filtered_df[
+    "precipitation"
+].sum()
+
+
+# ============================================================
+# KPI SECTION
+# ============================================================
+
+st.markdown(
+    "### 📊 Climate Snapshot"
 )
 
 
-st.sidebar.subheader("🔄 Live Data")
+kpi_columns = st.columns(6)
 
-if st.sidebar.button("Refresh Live Data"):
 
-    try:
+kpis = [
 
-        with st.spinner("Collecting fresh climate data..."):
+    (
+        "🌡️",
+        "Average Temperature",
+        f"{avg_temp:.1f} °C"
+    ),
 
-            new_data = collect_climate_data(
-                latitude,
-                longitude
-            )
+    (
+        "🔥",
+        "Maximum Temperature",
+        f"{max_temp:.1f} °C"
+    ),
 
-        st.session_state.live_data = new_data
+    (
+        "🌫️",
+        "Average PM2.5",
+        f"{avg_pm25:.1f} µg/m³"
+    ),
 
-        st.success("Live data updated successfully!")
+    (
+        "💨",
+        "Average PM10",
+        f"{avg_pm10:.1f} µg/m³"
+    ),
 
-        st.rerun()
+    (
+        "📊",
+        "Average AQI",
+        f"{avg_aqi:.1f}"
+    ),
 
-    except Exception as e:
+    (
+        "🌧️",
+        "Total Rainfall",
+        f"{total_rain:.1f} mm"
+    )
+]
 
-        st.error(
-            f"Unable to refresh data: {e}"
+
+for column, item in zip(
+    kpi_columns,
+    kpis
+):
+
+    icon, label, value = item
+
+    with column:
+
+        html(f"""
+        <div class="kpi-card">
+
+            <div class="kpi-icon">
+                {icon}
+            </div>
+
+            <div class="kpi-label">
+                {label}
+            </div>
+
+            <div class="kpi-value">
+                {value}
+            </div>
+
+        </div>
+        """)
+
+
+# ============================================================
+# ENVIRONMENT STATUS
+# ============================================================
+
+st.markdown(
+    "### 🌍 Environmental Snapshot"
+)
+
+
+current_aqi = latest["european_aqi"]
+
+current_temp = latest["temperature_2m"]
+
+current_rain = latest["precipitation"]
+
+
+# AQI
+
+if pd.isna(current_aqi):
+
+    aqi_status = "Unknown"
+
+elif current_aqi <= 20:
+
+    aqi_status = "Good"
+
+elif current_aqi <= 40:
+
+    aqi_status = "Fair"
+
+elif current_aqi <= 60:
+
+    aqi_status = "Moderate"
+
+elif current_aqi <= 80:
+
+    aqi_status = "Poor"
+
+elif current_aqi <= 100:
+
+    aqi_status = "Very Poor"
+
+else:
+
+    aqi_status = "Extremely Poor"
+
+
+# Heat
+
+if pd.isna(current_temp):
+
+    heat_status = "Unknown"
+
+elif current_temp < 25:
+
+    heat_status = "Low"
+
+elif current_temp < 30:
+
+    heat_status = "Moderate"
+
+elif current_temp < 35:
+
+    heat_status = "High"
+
+else:
+
+    heat_status = "Very High"
+
+
+# Rain
+
+if pd.isna(current_rain):
+
+    rain_status = "Unknown"
+
+elif current_rain == 0:
+
+    rain_status = "No Rain"
+
+elif current_rain < 2.5:
+
+    rain_status = "Light"
+
+elif current_rain < 7.6:
+
+    rain_status = "Moderate"
+
+elif current_rain < 15:
+
+    rain_status = "Heavy"
+
+else:
+
+    rain_status = "Very Heavy"
+
+
+status_columns = st.columns(3)
+
+
+statuses = [
+
+    (
+        "🌫️ AIR QUALITY",
+        aqi_status,
+        (
+            f"European AQI: {current_aqi:.1f}"
+            if not pd.isna(current_aqi)
+            else "AQI unavailable"
         )
+    ),
+
+    (
+        "🌡️ HEAT CONDITION",
+        heat_status,
+        (
+            f"Temperature: {current_temp:.1f} °C"
+            if not pd.isna(current_temp)
+            else "Temperature unavailable"
+        )
+    ),
+
+    (
+        "🌧️ RAINFALL",
+        rain_status,
+        (
+            f"Current rainfall: {current_rain:.1f} mm"
+            if not pd.isna(current_rain)
+            else "Rainfall unavailable"
+        )
+    )
+]
 
 
-# ==================================================
-# LATEST DATA
-# ==================================================
+for column, item in zip(
+    status_columns,
+    statuses
+):
 
-latest = climate_df.iloc[0]
+    title, value, detail = item
+
+    with column:
+
+        html(f"""
+        <div class="status-card">
+
+            <div class="status-label">
+                {title}
+            </div>
+
+            <div class="status-value">
+                {value}
+            </div>
+
+            <div class="status-detail">
+                {detail}
+            </div>
+
+        </div>
+        """)
 
 
-# ==================================================
-# LAST UPDATED
-# ==================================================
+# ============================================================
+# MAIN TREND
+# ============================================================
+
+st.markdown(
+    "### 📈 Climate Trend Explorer"
+)
+
 
 st.caption(
-    f"Last API update: {latest['timestamp']} "
-    f"| Collected by dashboard: "
-    f"{latest['collected_at']}"
+    "Change the metric or analysis period from the sidebar."
 )
 
 
-# ==================================================
-# KPI CARDS
-# ==================================================
+metric_columns = {
 
-st.subheader("📊 Current Climate Conditions")
+    "Temperature": (
+        "temperature_2m",
+        "Temperature (°C)"
+    ),
 
-col1, col2, col3, col4, col5 = st.columns(5)
+    "PM2.5": (
+        "pm2_5",
+        "PM2.5 (µg/m³)"
+    ),
 
+    "PM10": (
+        "pm10",
+        "PM10 (µg/m³)"
+    ),
 
-with col1:
+    "European AQI": (
+        "european_aqi",
+        "European AQI"
+    ),
 
-    st.metric(
-        "🌡️ Temperature",
-        f"{latest['temperature_2m']:.1f} °C"
+    "Rainfall": (
+        "precipitation",
+        "Rainfall (mm)"
     )
+}
 
 
-with col2:
-
-    st.metric(
-        "💧 Humidity",
-        f"{latest['relative_humidity_2m']:.1f}%"
-    )
+column_name, y_label = metric_columns[
+    metric
+]
 
 
-with col3:
-
-    st.metric(
-        "🌫️ PM2.5",
-        f"{latest['pm2_5']:.1f} µg/m³"
-    )
-
-
-with col4:
-
-    st.metric(
-        "🟠 European AQI",
-        f"{latest['european_aqi']:.0f}"
-    )
-
-
-with col5:
-
-    st.metric(
-        "🌧️ Rainfall",
-        f"{latest['precipitation']:.1f} mm"
-    )
-
-
-st.divider()
-
-
-# ==================================================
-# ENVIRONMENTAL STATUS
-# ==================================================
-
-st.subheader("🌍 Environmental Status")
-
-status = latest["environmental_status"]
-
-st.info(
-    f"Current Environmental Status: **{status}**"
+fig_trend = px.area(
+    filtered_df,
+    x="time",
+    y=column_name
 )
 
 
-# ==================================================
-# CLIMATE INDICATORS
-# ==================================================
+fig_trend.update_layout(
+    height=480,
 
-col1, col2, col3 = st.columns(3)
+    margin=dict(
+        l=20,
+        r=20,
+        t=25,
+        b=20
+    ),
 
+    paper_bgcolor="rgba(0,0,0,0)",
 
-with col1:
+    plot_bgcolor="rgba(0,0,0,0)",
 
-    st.metric(
-        "🔥 Heat Indicator",
-        latest["heat_indicator"]
+    xaxis=dict(
+        title="",
+        showgrid=False
+    ),
+
+    yaxis=dict(
+        title=y_label,
+        gridcolor="rgba(255,255,255,0.07)"
+    ),
+
+    hovermode="x unified",
+
+    font=dict(
+        color="#b9c8d8"
     )
-
-
-with col2:
-
-    st.metric(
-        "🌧️ Rainfall Indicator",
-        latest["rainfall_indicator"]
-    )
-
-
-with col3:
-
-    st.metric(
-        "🌫️ Air Pollution",
-        latest["air_pollution_indicator"]
-    )
-
-
-st.divider()
-
-
-# ==================================================
-# WEATHER INFORMATION
-# ==================================================
-
-st.subheader("🌡️ Weather Information")
-
-weather_display = pd.DataFrame({
-    "Metric": [
-        "Temperature",
-        "Apparent Temperature",
-        "Relative Humidity",
-        "Precipitation",
-        "Wind Speed",
-        "Wind Direction"
-    ],
-
-    "Value": [
-        f"{latest['temperature_2m']:.1f} °C",
-        f"{latest['apparent_temperature']:.1f} °C",
-        f"{latest['relative_humidity_2m']:.1f} %",
-        f"{latest['precipitation']:.1f} mm",
-        f"{latest['wind_speed_10m']:.1f} km/h",
-        f"{latest['wind_direction_10m']:.0f}°"
-    ]
-})
-
-st.dataframe(
-    weather_display,
-    use_container_width=True,
-    hide_index=True
 )
 
 
-# ==================================================
-# AIR QUALITY INFORMATION
-# ==================================================
-
-st.subheader("🌫️ Air Quality Information")
-
-air_display = pd.DataFrame({
-    "Pollutant": [
-        "PM2.5",
-        "PM10",
-        "Carbon Monoxide",
-        "Carbon Dioxide",
-        "Nitrogen Dioxide",
-        "Sulphur Dioxide",
-        "Ozone"
-    ],
-
-    "Value": [
-        f"{latest['pm2_5']:.2f} µg/m³",
-        f"{latest['pm10']:.2f} µg/m³",
-        f"{latest['carbon_monoxide']:.2f} µg/m³",
-        f"{latest['carbon_dioxide']:.2f} ppm",
-        f"{latest['nitrogen_dioxide']:.2f} µg/m³",
-        f"{latest['sulphur_dioxide']:.2f} µg/m³",
-        f"{latest['ozone']:.2f} µg/m³"
-    ]
-})
-
-st.dataframe(
-    air_display,
-    use_container_width=True,
-    hide_index=True
+st.plotly_chart(
+    fig_trend,
+    use_container_width=True
 )
 
 
-# ==================================================
-# RAW LIVE DATA
-# ==================================================
+# ============================================================
+# TEMPERATURE HEATMAP
+# ============================================================
 
-st.subheader("📋 Current Live Data")
-
-st.dataframe(
-    climate_df,
-    use_container_width=True,
-    hide_index=True
+st.markdown(
+    "### 🌡️ Temperature Heatmap"
 )
 
 
-# ==================================================
-# CSV DOWNLOAD
-# ==================================================
+if "hour" not in filtered_df.columns:
 
-st.subheader("⬇️ Download Live Data")
+    filtered_df["hour"] = (
+        filtered_df["time"].dt.hour
+    )
 
-csv_data = climate_df.to_csv(
+
+filtered_df["date"] = (
+    filtered_df["time"].dt.date
+)
+
+
+temperature_heatmap = filtered_df.pivot_table(
+    index="hour",
+    columns="date",
+    values="temperature_2m",
+    aggfunc="mean"
+)
+
+
+if not temperature_heatmap.empty:
+
+    fig_heatmap = px.imshow(
+        temperature_heatmap,
+        aspect="auto",
+        labels={
+            "x": "Date",
+            "y": "Hour",
+            "color": "Temperature"
+        }
+    )
+
+
+    fig_heatmap.update_layout(
+        height=480,
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=20,
+            b=20
+        ),
+
+        paper_bgcolor="rgba(0,0,0,0)",
+
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+
+
+    st.plotly_chart(
+        fig_heatmap,
+        use_container_width=True
+    )
+
+
+# ============================================================
+# ATMOSPHERIC CONDITIONS
+# ============================================================
+
+st.markdown(
+    "### 🌫️ Atmospheric Conditions"
+)
+
+
+left, right = st.columns(2)
+
+
+with left:
+
+    fig_pm = px.area(
+        filtered_df,
+        x="time",
+        y=[
+            "pm2_5",
+            "pm10"
+        ]
+    )
+
+
+    fig_pm.update_layout(
+        height=430,
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=20,
+            b=20
+        ),
+
+        paper_bgcolor="rgba(0,0,0,0)",
+
+        plot_bgcolor="rgba(0,0,0,0)",
+
+        hovermode="x unified"
+    )
+
+
+    st.plotly_chart(
+        fig_pm,
+        use_container_width=True
+    )
+
+
+with right:
+
+    fig_rain = px.bar(
+        filtered_df,
+        x="time",
+        y="precipitation"
+    )
+
+
+    fig_rain.update_layout(
+        height=430,
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=20,
+            b=20
+        ),
+
+        paper_bgcolor="rgba(0,0,0,0)",
+
+        plot_bgcolor="rgba(0,0,0,0)",
+
+        hovermode="x unified"
+    )
+
+
+    st.plotly_chart(
+        fig_rain,
+        use_container_width=True
+    )
+
+
+# ============================================================
+# ENVIRONMENTAL ANALYTICS
+# ============================================================
+
+st.markdown(
+    "### 🔬 Environmental Analytics"
+)
+
+
+left, right = st.columns(2)
+
+
+# AQI Gauge
+
+with left:
+
+    gauge_value = (
+        float(current_aqi)
+        if not pd.isna(current_aqi)
+        else 0
+    )
+
+
+    gauge = go.Figure(
+        go.Indicator(
+
+            mode="gauge+number",
+
+            value=gauge_value,
+
+            title={
+                "text": "European AQI"
+            },
+
+            gauge={
+
+                "axis": {
+                    "range": [0, 120]
+                },
+
+                "bar": {
+                    "thickness": 0.25
+                },
+
+                "steps": [
+
+                    {"range": [0, 20]},
+
+                    {"range": [20, 40]},
+
+                    {"range": [40, 60]},
+
+                    {"range": [60, 80]},
+
+                    {"range": [80, 100]},
+
+                    {"range": [100, 120]}
+                ],
+
+                "threshold": {
+
+                    "line": {
+                        "width": 4
+                    },
+
+                    "value": gauge_value
+                }
+            }
+        )
+    )
+
+
+    gauge.update_layout(
+        height=430,
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=40,
+            b=20
+        ),
+
+        paper_bgcolor="rgba(0,0,0,0)"
+    )
+
+
+    st.plotly_chart(
+        gauge,
+        use_container_width=True
+    )
+
+
+# Temperature / PM2.5
+
+with right:
+
+    fig_scatter = px.scatter(
+        filtered_df,
+        x="temperature_2m",
+        y="pm2_5",
+        size="european_aqi",
+        hover_data=[
+            "time",
+            "pm10"
+        ],
+        labels={
+            "temperature_2m":
+                "Temperature (°C)",
+
+            "pm2_5":
+                "PM2.5 (µg/m³)",
+
+            "european_aqi":
+                "AQI"
+        }
+    )
+
+
+    fig_scatter.update_layout(
+        height=430,
+
+        margin=dict(
+            l=20,
+            r=20,
+            t=20,
+            b=20
+        ),
+
+        paper_bgcolor="rgba(0,0,0,0)",
+
+        plot_bgcolor="rgba(0,0,0,0)",
+
+        xaxis=dict(
+            gridcolor="rgba(255,255,255,0.07)"
+        ),
+
+        yaxis=dict(
+            gridcolor="rgba(255,255,255,0.07)"
+        )
+    )
+
+
+    st.plotly_chart(
+        fig_scatter,
+        use_container_width=True
+    )
+
+
+# ============================================================
+# DATA EXPLORER
+# ============================================================
+
+st.markdown(
+    "### 📊 Data Explorer"
+)
+
+
+with st.expander(
+    "🔎 Open interactive climate dataset"
+):
+
+    st.dataframe(
+        filtered_df,
+        use_container_width=True,
+        height=450
+    )
+
+
+# ============================================================
+# DOWNLOAD
+# ============================================================
+
+csv_data = filtered_df.to_csv(
     index=False
 )
 
+
 st.download_button(
-    label="Download Current Climate Data",
+    label="⬇️ Download Filtered Climate Data",
     data=csv_data,
-    file_name="live_climate_data.csv",
+    file_name="climate_data_filtered.csv",
     mime="text/csv"
 )
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+html("""
+<div class="footer">
+
+    <b>🌍 Climate Intelligence Dashboard</b>
+
+    <br>
+
+    Interactive Climate & Environmental Analytics
+
+    <br><br>
+
+    Built with Python • Pandas • Plotly • Streamlit
+
+    <br>
+
+    Weather & Air Quality data powered by Open-Meteo
+
+</div>
+""")
