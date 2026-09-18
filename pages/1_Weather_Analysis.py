@@ -965,19 +965,80 @@ st.download_button(
 html("""
 <div class="footer">
 
-    <b>🌍 Climate Intelligence Dashboard</b>
+    <div style="
+        font-size:18px;
+        font-weight:800;
+        color:#eaf4ff;
+        margin-bottom:8px;
+    ">
+        🌍 Live Climate Impact Dashboard
+    </div>
 
-    <br>
+    <div style="
+        font-size:14px;
+        color:#a9bbce;
+        margin-bottom:14px;
+    ">
+        Designed & Developed by
+        <b style="color:#f3f8fd;">Sandesh Adhikari</b>
+    </div>
 
-    Weather Analysis & Environmental Analytics
+    <div style="
+        font-size:12px;
+        color:#8297aa;
+        line-height:2;
+    ">
+        Data Analyst Portfolio Project
+        <br>
+        Built with Python • Pandas • Plotly • Streamlit
+    </div>
 
-    <br><br>
+    <div style="
+        margin-top:16px;
+        font-size:13px;
+        line-height:2;
+    ">
 
-    Built with Python • Pandas • Plotly • Streamlit
+        <a href="mailto:adhikarisandesh333@gmail.com"
+           style="color:#7ddff0; text-decoration:none; margin:0 10px;">
+           📧 Email
+        </a>
 
-    <br>
+        <span style="color:#42566a;">|</span>
 
-    Weather data powered by Open-Meteo
+        <a href="https://github.com/sandeshadhikari1"
+           target="_blank"
+           style="color:#7ddff0; text-decoration:none; margin:0 10px;">
+           💻 GitHub
+        </a>
+
+        <span style="color:#42566a;">|</span>
+
+        <a href="https://www.linkedin.com/in/sandesh-adh/"
+           target="_blank"
+           style="color:#7ddff0; text-decoration:none; margin:0 10px;">
+           🔗 LinkedIn
+        </a>
+
+        <span style="color:#42566a;">|</span>
+
+        <a href="https://sandeshadhikari.info.np"
+           target="_blank"
+           style="color:#7ddff0; text-decoration:none; margin:0 10px;">
+           🌐 Portfolio
+        </a>
+
+    </div>
+
+    <div style="
+        margin-top:18px;
+        padding-top:14px;
+        border-top:1px solid rgba(255,255,255,0.07);
+        color:#657b90;
+        font-size:11px;
+    ">
+        © 2026 Sandesh Adhikari • Climate & Environmental Data Analysis
+    </div>
 
 </div>
 """)
